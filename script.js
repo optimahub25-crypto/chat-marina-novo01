@@ -1,42 +1,125 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marina Chat IA</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-</head>
-<body>
-    <div class="chat-container">
-        <h1 class="chat-title">Marina Chat IA</h1>
+// =================================================================
+// 🔑 CHAVE DA API INSERIDA AQUI (Use sua chave COMPLETA)
+// =================================================================
+// ATENÇÃO: Se você gerou uma chave nova, certifique-se de colocá-la aqui.
+const GEMINI_API_KEY = "AIzaSyD-872ZWnruby4Th-k85v5IZXwY1nroAOU"; 
 
-        <div class="search-bar">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Pesquisar...">
-        </div>
+// Variáveis DOM
+const historyList = document.getElementById('history-list');
+const chatInput = document.getElementById('chat-input');
+const sendButton = document.querySelector('.send-btn');
 
-        <div class="history-section">
-            <div class="history-header">
-                <h2>HISTÓRICO DE PESQUISA</h2>
-                <button class="delete-history-btn" onclick="clearHistory()">
-                    <i class="fas fa-trash-alt"></i> EXCLUIR HISTÓRICO
-                </button>
-            </div>
-            <ul id="history-list" class="history-list">
-            </ul>
-        </div>
+// Inicialização da API
+// Certifique-se de que a tag do SDK está no seu index.html: <script src="https://cdn.jsdelivr.net/npm/@google/genai@0.1.0/dist/index.min.js"></script>
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+let chat = ai.chats.create({ model: "gemini-2.5-flash" }); 
+let searchHistory = []; 
 
-        <div class="input-area">
-            <input type="text" placeholder="Digite sua mensagem..." id="chat-input" onkeydown="if(event.key === 'Enter') sendMessage()">
-            <button class="send-btn" onclick="sendMessage()">
-                <i class="fas fa-paper-plane"></i>
-            </button>
-        </div>
-    </div>
+// Função para renderizar (mostrar) o histórico na tela
+function renderHistory() {
+    historyList.innerHTML = ''; 
+    if (searchHistory.length === 0) {
+        historyList.innerHTML = '<li style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 15px;">Histórico vazio. Comece a pesquisar!</li>';
+        return;
+    }
+
+    searchHistory.forEach(item => {
+        const listItem = document.createElement('li');
+        const iconClass = item.role === 'user' ? "fas fa-user" : (item.role === 'ai' ? "fas fa-robot" : "fas fa-exclamation-triangle");
+        const roleClass = item.role === 'user' ? 'user-message' : (item.role === 'ai' ? 'ai-message' : 'error-message');
+
+        listItem.className = 'history-item ' + roleClass;
+        
+        listItem.innerHTML = `
+            <i class="${iconClass}"></i>
+            <span class="history-text">${item.text}</span>
+            <span class="history-time">${item.time}</span>
+        `;
+        historyList.appendChild(listItem);
+    });
+    // Rola para a mensagem mais recente
+    historyList.scrollTop = historyList.scrollHeight;
+}
+
+// Função ligada ao botão "EXCLUIR HISTÓRICO"
+function clearHistory() {
+    const confirmation = confirm("Tem certeza que deseja apagar todo o histórico de pesquisa?");
     
-    <script src="https://cdn.jsdelivr.net/npm/@google/genai@0.1.0/dist/index.min.js"></script>
+    if (confirmation) {
+        searchHistory = []; 
+        renderHistory();    
+        alert("Histórico excluído com sucesso!");
+        chat = ai.chats.create({ model: "gemini-2.5-flash" });
+    }
+}
+
+// Função principal para enviar mensagens ao Gemini
+async function sendMessage() {
+    const message = chatInput.value.trim();
+    if (message === "") { return; }
+
+    // Bloqueia a interação imediatamente
+    chatInput.disabled = true;
+    sendButton.disabled = true;
+
+    const timeString = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    // 1. Adiciona a mensagem do usuário
+    searchHistory.push({ text: message, time: timeString, icon: "fas fa-user", role: "user" });
     
-    <script src="script.js"></script>
-</body>
-</html>
+    // 2. Adiciona o indicador de 'carregando' (Digitando...)
+    searchHistory.push({ 
+        text: "Digitando...", 
+        time: timeString, // Usa o mesmo timestamp inicial
+        icon: "fas fa-robot", 
+        role: "ai" 
+    });
+    
+    // ******* SOLUÇÃO DE DEBUG: RENDERIZAÇÃO IMEDIATA *******
+    // Se o chat agora mostrar 'Digitando...' e sumir, o problema é na rede/chave.
+    renderHistory();
+    
+    chatInput.value = ''; // Limpa o input DEPOIS de renderizar
+
+    try {
+        // 3. Comunicação com a API
+        // Esta linha irá falhar se a chave for inválida ou o acesso for negado.
+        const response = await chat.sendMessage({ message: message });
+
+        // 4. Remove o 'carregando'
+        searchHistory.pop();
+
+        // 5. Adiciona a resposta final da IA
+        searchHistory.push({
+            text: response.text, 
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            icon: "fas fa-robot",
+            role: "ai"
+        });
+
+    } catch (error) {
+        console.error("Erro ao comunicar com a API Gemini:", error);
+        
+        // Se a chamada da API falhar, o erro geralmente é de autenticação
+        const errorMessage = "Erro de API: A chave está incorreta, incompleta, ou as restrições de uso estão bloqueando o acesso do seu site.";
+        
+        searchHistory.pop(); // Remove o 'Digitando...'
+        searchHistory.push({
+            text: errorMessage,
+            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            icon: "fas fa-exclamation-triangle",
+            role: "error"
+        });
+    } finally {
+        // 6. Atualiza a tela com a resposta (ou erro)
+        renderHistory(); 
+
+        // 7. Reabilita a interação
+        chatInput.disabled = false;
+        sendButton.disabled = false;
+        chatInput.focus();
+    }
+}
+
+// Roda a função de renderização quando a página carrega
+document.addEventListener('DOMContentLoaded', renderHistory);
