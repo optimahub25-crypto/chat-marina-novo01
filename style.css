@@ -1,0 +1,199 @@
+:root {
+    /* Paleta de Cores Tecnológicas */
+    --primary-color: #00ffff; /* Ciano/Azul Elétrico */
+    --secondary-color: #0077ff; /* Azul Profundo */
+    --background-dark: #0a192f; /* Azul Escuro Quase Preto */
+    --text-light: #e6f1ff; /* Branco Suave */
+    --glass-background: rgba(4, 25, 49, 0.75); /* Fundo semi-transparente (Glassmorphism) */
+    --border-color: #00ffff;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Fonte limpa e moderna */
+}
+
+body {
+    background-color: var(--background-dark);
+    color: var(--text-light);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden; /* Garante que nada saia da tela */
+    /* Configuração do Plano de Fundo com a Imagem */
+    background-image: url('marina_fundo.jpeg.jpeg'); 
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+}
+
+.chat-container {
+    width: 90%;
+    max-width: 450px;
+    padding: 30px;
+    border-radius: 20px;
+    /* Efeito Glassmorphism (Vidro) */
+    background: var(--glass-background);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color);
+    z-index: 1; /* Para ficar acima do fundo */
+}
+
+/* Título */
+.chat-title {
+    font-size: 2em;
+    text-align: center;
+    margin-bottom: 25px;
+    /* Efeito Neon/Brilho */
+    text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* Barra de Pesquisa Superior */
+.search-bar {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 10px 15px;
+    margin-bottom: 25px;
+    border: 1px solid var(--secondary-color);
+}
+
+.search-bar i {
+    color: var(--primary-color);
+    margin-right: 10px;
+}
+
+.search-bar input {
+    flex-grow: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-light);
+    font-size: 1em;
+    outline: none;
+}
+
+/* Seção de Histórico */
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.history-header h2 {
+    font-size: 0.8em;
+    color: var(--secondary-color);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.delete-history-btn {
+    background: transparent;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.75em;
+    font-weight: bold;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.delete-history-btn:hover {
+    background-color: rgba(0, 255, 255, 0.1);
+    box-shadow: 0 0 5px var(--primary-color);
+}
+
+.history-list {
+    list-style: none;
+    max-height: 200px; /* Limita a altura para scroll */
+    overflow-y: auto;
+    padding-right: 10px; /* Espaço para a barra de scroll */
+}
+
+/* Estilo para a barra de rolagem (futurista) */
+.history-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+    background: var(--secondary-color);
+    border-radius: 4px;
+}
+
+.history-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+.history-item i {
+    color: var(--primary-color);
+    margin-right: 10px;
+    font-size: 1.1em;
+}
+
+.history-text {
+    flex-grow: 1;
+    font-size: 0.95em;
+}
+
+.history-time {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Área de Input de Mensagem Inferior */
+.input-area {
+    display: flex;
+    margin-top: 30px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--primary-color);
+}
+
+.input-area input {
+    flex-grow: 1;
+    border: none;
+    background: transparent;
+    padding: 15px;
+    color: var(--text-light);
+    font-size: 1em;
+    outline: none;
+}
+
+.send-btn {
+    background-color: var(--primary-color);
+    border: none;
+    padding: 15px 20px;
+    cursor: pointer;
+    color: var(--background-dark); /* Cor escura para contraste */
+    font-size: 1em;
+    transition: background-color 0.3s, transform 0.1s;
+}
+
+.send-btn:hover {
+    background-color: #00eeee; /* Cor um pouco mais clara ao passar o mouse */
+    transform: scale(1.05);
+}
+
+.send-btn i {
+    transform: rotate(45deg); /* Gira o ícone do avião de papel */
+}
