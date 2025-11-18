@@ -91,7 +91,7 @@ async function sendMessage() {
             },
             body: JSON.stringify({
                 contents: messagesToSend,
-                // ✅ CORREÇÃO: Usamos generationConfig em vez de config
+                // Correção de sintaxe para evitar o erro "Unknown name config"
                 generationConfig: { 
                     temperature: 0.7 
                 }
@@ -118,7 +118,7 @@ async function sendMessage() {
         console.error("Erro na comunicação com o Gemini:", error);
         
         // Remove o 'Digitando...' (Se ainda estiver lá)
-        if (searchHistory[searchHistory.length - 1].parts[0].text === "Digitando...") {
+        if (searchHistory[searchHistory.length - 1].parts && searchHistory[searchHistory.length - 1].parts[0].text === "Digitando...") {
             searchHistory.splice(searchHistory.length - 1, 1);
         }
 
@@ -135,7 +135,7 @@ async function sendMessage() {
         sendButton.disabled = false;
         chatInput.focus();
     }
-}
+} // <-- CHAVE DE FECHAMENTO FINAL CORRETA
 
 // Roda a função de renderização quando a página carrega
 document.addEventListener('DOMContentLoaded', renderHistory);
