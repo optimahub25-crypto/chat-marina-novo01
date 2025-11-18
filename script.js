@@ -1,7 +1,7 @@
 // =================================================================
 // 🔑 CHAVE DA API INSERIDA AQUI
 // =================================================================
-const GEMINI_API_KEY = "AIzaSyD-872ZWnruby4Th-k85v5IZXwY1nroAOU"; 
+const GEMINI_API_KEY = "AIzaSyCZEhsooN9qY1KP10ouJnCQArrn9kW87DI"; 
 const historyList = document.getElementById('history-list');
 const chatInput = document.getElementById('chat-input');
 const sendButton = document.querySelector('.send-btn');
@@ -108,4 +108,5 @@ async function sendMessage() {
 }
 
 // Roda a função de renderização quando a página carrega
+
 document.addEventListener('DOMContentLoaded', renderHistory);
