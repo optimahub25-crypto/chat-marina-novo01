@@ -1,37 +1,46 @@
 // =================================================================
-// 🔑 CHAVE DA API INSERIDA (A Chave que você forneceu)
+// 🔑 SUA CHAVE DA API AQUI (A chave que você forneceu)
 // =================================================================
+// NOTA: A chave que você forneceu parece incompleta. Se possível, garanta que ela tenha 43 caracteres.
 const GEMINI_API_KEY = "AIzaSyD-872ZWnruby4Th-k85v5IZXwY1nroAOU"; 
 
 // Variáveis DOM
 const historyList = document.getElementById('history-list');
 const chatInput = document.getElementById('chat-input');
 const sendButton = document.querySelector('.send-btn');
+const CHAT_MODEL = "gemini-2.5-flash"; 
 
-// Inicialização da API (Esta linha falha se o SDK não carregar)
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-let chat = ai.chats.create({ model: "gemini-2.5-flash" }); 
-let searchHistory = []; 
+// O histórico agora é uma coleção de objetos com o papel (role) para a API
+let searchHistory = [
+    { role: "user", parts: [{ text: "Responda em português. Você é Marina Chat IA, uma assistente virtual prestativa." }] }
+]; 
 
 // Função para renderizar (mostrar) o histórico na tela
 function renderHistory() {
     historyList.innerHTML = ''; 
-    if (searchHistory.length === 0) {
-        historyList.innerHTML = '<li style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 15px;">Histórico vazio. Comece a pesquisar!</li>';
+    const displayHistory = searchHistory.filter(item => item.role !== 'system');
+    
+    if (displayHistory.length === 0) {
+        historyList.innerHTML = '<li style="text-align: center; color: rgba(255, 255, 255, 0.5); padding: 15px;">Histórico vazio. Comece a conversar!</li>';
         return;
     }
 
-    searchHistory.forEach(item => {
+    displayHistory.forEach(item => {
+        const text = item.parts ? item.parts[0].text : item.text;
+        if (!text) return; // Ignora mensagens sem texto
+        
+        const role = item.role === 'model' ? 'ai' : item.role; // O Gemini usa 'model'
+        
         const listItem = document.createElement('li');
-        const iconClass = item.role === 'user' ? "fas fa-user" : (item.role === 'ai' ? "fas fa-robot" : "fas fa-exclamation-triangle");
-        const roleClass = item.role === 'user' ? 'user-message' : (item.role === 'ai' ? 'ai-message' : 'error-message');
-        const timeString = item.time || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const iconClass = role === 'user' ? "fas fa-user" : (role === 'ai' ? "fas fa-robot" : "fas fa-exclamation-triangle");
+        const roleClass = role === 'user' ? 'user-message' : (role === 'ai' ? 'ai-message' : 'error-message');
+        const timeString = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
         listItem.className = 'history-item ' + roleClass;
         
         listItem.innerHTML = `
             <i class="${iconClass}"></i>
-            <span class="history-text">${item.text}</span>
+            <span class="history-text">${text}</span>
             <span class="history-time">${timeString}</span>
         `;
         historyList.appendChild(listItem);
@@ -41,71 +50,77 @@ function renderHistory() {
 
 // Função ligada ao botão "EXCLUIR HISTÓRICO"
 function clearHistory() {
-    const confirmation = confirm("Tem certeza que deseja apagar todo o histórico de pesquisa?");
+    const confirmation = confirm("Tem certeza que deseja apagar todo o histórico de conversa?");
     
     if (confirmation) {
-        searchHistory = []; 
+        // Reinicializa o histórico mantendo apenas a instrução de personalidade
+        searchHistory = [
+            { role: "user", parts: [{ text: "Responda em português. Você é Marina Chat IA, uma assistente virtual prestativa." }] }
+        ];
         renderHistory();    
         alert("Histórico excluído com sucesso!");
-        chat = ai.chats.create({ model: "gemini-2.5-flash" });
     }
 }
 
-// Função principal para enviar mensagens ao Gemini
+// Função principal para enviar mensagens à API do Gemini (usando FETCH puro)
 async function sendMessage() {
     const message = chatInput.value.trim();
     if (message === "") { return; }
 
+    // Adiciona a mensagem do usuário ao histórico e renderiza
+    searchHistory.push({ role: "user", parts: [{ text: message }] });
+    searchHistory.push({ role: "model", parts: [{ text: "Digitando..." }] });
+    renderHistory(); 
+
     // Bloqueia a interação
     chatInput.disabled = true;
     sendButton.disabled = true;
-
-    const timeString = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-    // 1. Adiciona a mensagem do usuário
-    searchHistory.push({ text: message, time: timeString, icon: "fas fa-user", role: "user" });
-    
-    // 2. Adiciona o indicador de 'carregando' (Digitando...)
-    searchHistory.push({ 
-        text: "Digitando...", 
-        time: timeString,
-        icon: "fas fa-robot", 
-        role: "ai" 
-    });
-    
-    renderHistory();
-    chatInput.value = ''; 
+    chatInput.value = '';
 
     try {
-        // 3. Comunicação com a API
-        const response = await chat.sendMessage({ message: message });
+        // Filtra o histórico para manter apenas as mensagens com 'user' ou 'model'
+        const messagesToSend = searchHistory.filter(item => item.role === 'user' || item.role === 'model').slice(0, -1); // Remove o "Digitando..."
 
-        // 4. Remove o 'carregando'
-        searchHistory.pop();
-
-        // 5. Adiciona a resposta final da IA
-        searchHistory.push({
-            text: response.text, 
-            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            icon: "fas fa-robot",
-            role: "ai"
+        // Comunicação com a API do Gemini (Endpoint de Chat Completions)
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${CHAT_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                contents: messagesToSend,
+                config: {
+                    temperature: 0.7 
+                }
+            })
         });
 
+        const data = await response.json();
+
+        // 4. Remove o 'Digitando...'
+        searchHistory.pop();
+
+        if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
+            const aiResponse = data.candidates[0].content;
+            
+            // 5. Adiciona a resposta final da IA
+            searchHistory.push(aiResponse);
+        } else if (data.error) {
+            throw new Error(data.error.message || "Erro desconhecido da API.");
+        } else {
+            throw new Error("Resposta inesperada. Chave de API inválida ou limites excedidos.");
+        }
+
     } catch (error) {
-        console.error("Erro ao comunicar com a API Gemini:", error);
+        console.error("Erro na comunicação com o Gemini:", error);
         
-        const errorMessage = "Erro na Comunicação. Verifique a chave de API ou a conexão de rede.";
-        
-        searchHistory.pop(); 
+        searchHistory.pop(); // Remove o 'Digitando...'
         searchHistory.push({
-            text: errorMessage,
-            time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            icon: "fas fa-exclamation-triangle",
-            role: "error"
+            role: "error",
+            text: `Erro: ${error.message}. Verifique a chave ou o Google Cloud.`,
         });
     } finally {
         renderHistory(); 
-
         chatInput.disabled = false;
         sendButton.disabled = false;
         chatInput.focus();
