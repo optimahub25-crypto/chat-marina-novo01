@@ -110,3 +110,32 @@ async function sendMessage() {
             searchHistory.push(aiResponse);
         } else if (data.error) {
             throw new Error(data.error.message || "Erro desconhecido da API.");
+        } else {
+            throw new Error("Resposta inesperada. Chave de API inválida ou limites excedidos.");
+        }
+
+    } catch (error) {
+        console.error("Erro na comunicação com o Gemini:", error);
+        
+        // Remove o 'Digitando...' (Se ainda estiver lá)
+        if (searchHistory[searchHistory.length - 1].parts[0].text === "Digitando...") {
+            searchHistory.splice(searchHistory.length - 1, 1);
+        }
+
+        searchHistory.push({
+            role: "error",
+            parts: [{text: `Erro de comunicação: ${error.message}.`}]
+        });
+    } finally {
+        // 6. Atualiza a tela com a resposta (ou erro)
+        renderHistory(); 
+
+        // 7. Reabilita a interação
+        chatInput.disabled = false;
+        sendButton.disabled = false;
+        chatInput.focus();
+    }
+}
+
+// Roda a função de renderização quando a página carrega
+document.addEventListener('DOMContentLoaded', renderHistory);
