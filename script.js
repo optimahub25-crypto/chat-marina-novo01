@@ -1,15 +1,19 @@
 // =================================================================
-// 🔑 CHAVE DA API INSERIDA AQUI
+// 🔑 CHAVE DA API INSERIDA AQUI (Use sua chave COMPLETA)
 // =================================================================
+// ATENÇÃO: Se você gerou uma chave nova, certifique-se de colocá-la aqui.
 const GEMINI_API_KEY = "AIzaSyD-872ZWnruby4Th-k85v5IZXwY1nroAOU"; 
+
+// Variáveis DOM
 const historyList = document.getElementById('history-list');
 const chatInput = document.getElementById('chat-input');
 const sendButton = document.querySelector('.send-btn');
 
-// Inicializa o cliente Gemini com sua chave
+// Inicialização da API
+// Certifique-se de que a tag do SDK está no seu index.html: <script src="https://cdn.jsdelivr.net/npm/@google/genai@0.1.0/dist/index.min.js"></script>
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-let chat = ai.chats.create({ model: "gemini-2.5-flash" }); // Cria uma sessão de chat
-let searchHistory = []; // Histórico de mensagens local
+let chat = ai.chats.create({ model: "gemini-2.5-flash" }); 
+let searchHistory = []; 
 
 // Função para renderizar (mostrar) o histórico na tela
 function renderHistory() {
@@ -21,11 +25,13 @@ function renderHistory() {
 
     searchHistory.forEach(item => {
         const listItem = document.createElement('li');
-        // Adiciona classes para estilização de usuário vs IA
-        listItem.className = 'history-item ' + (item.role === 'user' ? 'user-message' : 'ai-message');
+        const iconClass = item.role === 'user' ? "fas fa-user" : (item.role === 'ai' ? "fas fa-robot" : "fas fa-exclamation-triangle");
+        const roleClass = item.role === 'user' ? 'user-message' : (item.role === 'ai' ? 'ai-message' : 'error-message');
+
+        listItem.className = 'history-item ' + roleClass;
         
         listItem.innerHTML = `
-            <i class="${item.icon}"></i>
+            <i class="${iconClass}"></i>
             <span class="history-text">${item.text}</span>
             <span class="history-time">${item.time}</span>
         `;
@@ -43,7 +49,6 @@ function clearHistory() {
         searchHistory = []; 
         renderHistory();    
         alert("Histórico excluído com sucesso!");
-        // Reinicia a sessão do chat para limpar o contexto do modelo também
         chat = ai.chats.create({ model: "gemini-2.5-flash" });
     }
 }
@@ -53,10 +58,9 @@ async function sendMessage() {
     const message = chatInput.value.trim();
     if (message === "") { return; }
 
-    // Bloqueia a interação enquanto espera a resposta da IA
+    // Bloqueia a interação imediatamente
     chatInput.disabled = true;
     sendButton.disabled = true;
-    chatInput.value = '';
 
     const timeString = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
@@ -66,14 +70,20 @@ async function sendMessage() {
     // 2. Adiciona o indicador de 'carregando' (Digitando...)
     searchHistory.push({ 
         text: "Digitando...", 
-        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), 
+        time: timeString, // Usa o mesmo timestamp inicial
         icon: "fas fa-robot", 
         role: "ai" 
     });
-    renderHistory(); 
+    
+    // ******* SOLUÇÃO DE DEBUG: RENDERIZAÇÃO IMEDIATA *******
+    // Se o chat agora mostrar 'Digitando...' e sumir, o problema é na rede/chave.
+    renderHistory();
+    
+    chatInput.value = ''; // Limpa o input DEPOIS de renderizar
 
     try {
         // 3. Comunicação com a API
+        // Esta linha irá falhar se a chave for inválida ou o acesso for negado.
         const response = await chat.sendMessage({ message: message });
 
         // 4. Remove o 'carregando'
@@ -89,9 +99,13 @@ async function sendMessage() {
 
     } catch (error) {
         console.error("Erro ao comunicar com a API Gemini:", error);
-        searchHistory.pop(); 
+        
+        // Se a chamada da API falhar, o erro geralmente é de autenticação
+        const errorMessage = "Erro de API: A chave está incorreta, incompleta, ou as restrições de uso estão bloqueando o acesso do seu site.";
+        
+        searchHistory.pop(); // Remove o 'Digitando...'
         searchHistory.push({
-            text: "Ocorreu um erro. Verifique a chave de API ou as restrições de uso.",
+            text: errorMessage,
             time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             icon: "fas fa-exclamation-triangle",
             role: "error"
