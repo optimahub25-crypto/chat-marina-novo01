@@ -18,6 +18,7 @@ let searchHistory = [
 // Função para renderizar (mostrar) o histórico na tela
 function renderHistory() {
     historyList.innerHTML = ''; 
+    // Filtra o histórico para manter apenas as mensagens que devem ser exibidas
     const displayHistory = searchHistory.filter(item => item.role !== 'system');
     
     if (displayHistory.length === 0) {
@@ -45,6 +46,7 @@ function renderHistory() {
         `;
         historyList.appendChild(listItem);
     });
+    // Rola para a mensagem mais recente
     historyList.scrollTop = historyList.scrollHeight;
 }
 
@@ -79,7 +81,7 @@ async function sendMessage() {
 
     try {
         // Filtra o histórico para manter apenas as mensagens com 'user' ou 'model'
-        const messagesToSend = searchHistory.filter(item => item.role === 'user' || item.role === 'model').slice(0, -1); // Remove o "Digitando..."
+        const messagesToSend = searchHistory.filter(item => item.role === 'user' || item.role === 'model');
 
         // Comunicação com a API do Gemini (Endpoint de Chat Completions)
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${CHAT_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
@@ -89,7 +91,8 @@ async function sendMessage() {
             },
             body: JSON.stringify({
                 contents: messagesToSend,
-                config: {
+                // ✅ CORREÇÃO: Usamos generationConfig em vez de config
+                generationConfig: { 
                     temperature: 0.7 
                 }
             })
@@ -97,8 +100,8 @@ async function sendMessage() {
 
         const data = await response.json();
 
-        // 4. Remove o 'Digitando...'
-        searchHistory.pop();
+        // 4. Remove o 'Digitando...' (A penúltima mensagem)
+        searchHistory.splice(searchHistory.length - 1, 1);
 
         if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
             const aiResponse = data.candidates[0].content;
@@ -107,25 +110,3 @@ async function sendMessage() {
             searchHistory.push(aiResponse);
         } else if (data.error) {
             throw new Error(data.error.message || "Erro desconhecido da API.");
-        } else {
-            throw new Error("Resposta inesperada. Chave de API inválida ou limites excedidos.");
-        }
-
-    } catch (error) {
-        console.error("Erro na comunicação com o Gemini:", error);
-        
-        searchHistory.pop(); // Remove o 'Digitando...'
-        searchHistory.push({
-            role: "error",
-            text: `Erro: ${error.message}. Verifique a chave ou o Google Cloud.`,
-        });
-    } finally {
-        renderHistory(); 
-        chatInput.disabled = false;
-        sendButton.disabled = false;
-        chatInput.focus();
-    }
-}
-
-// Roda a função de renderização quando a página carrega
-document.addEventListener('DOMContentLoaded', renderHistory);
